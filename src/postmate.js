@@ -225,6 +225,10 @@ class Postmate {
 
   static debug = false;
 
+  static maxHandshakeAttempts = 1;
+
+  static unlimitedHandshakeAttempts = false;
+
   // Internet Explorer craps itself
   static Promise = (() => {
     try {
@@ -335,6 +339,8 @@ Postmate.Model = class Model {
    */
   sendHandshakeReply() {
     return new Postmate.Promise((resolve, reject) => {
+      let attemptsCount = 0;
+
       const shake = (e) => {
         if (e.data.postmate === 'handshake') {
           log('Child: Received handshake from Parent');
@@ -361,7 +367,16 @@ Postmate.Model = class Model {
           log('Child: Saving Parent origin', this.parentOrigin);
           return resolve(new ChildAPI(this));
         }
-        return reject('Handshake Reply Failed');
+
+        attemptsCount++;
+
+        if (Postmate.unlimitedHandshakeAttempts === true) {
+          return true;
+        } else if (Postmate.maxHandshakeAttempts === attemptsCount) {
+          return reject('Handshake Reply Failed');
+        }
+
+        return true;
       };
       this.child.addEventListener('message', shake, false);
     });
